@@ -57,12 +57,25 @@ func main() {
 						log.Printf("Could not type case the message to a SlashCommand: %v\n", command)
 						continue
 					}
-					log.Println("Received slash event: ", command)
-					socketClient.Ack(*event.Request)
-					err := handlers.HandleSlashCommand(command, client)
+
+					// consider removing the client parameter as it's unused
+					payload, err := handlers.HandleSlashCommand(command, client)
 					if err != nil {
 						log.Fatal(err)
 					}
+					socketClient.Ack(*event.Request, payload)
+				case socketmode.EventTypeInteractive:
+					interaction, ok := event.Data.(slack.InteractionCallback)
+					if !ok {
+						log.Printf("Could not type cast the message to an Interaction callback: %v\n", interaction)
+						continue
+					}
+
+					err := handlers.HandleInteractionEvent(interaction, client)
+					if err != nil {
+						log.Fatal(err)
+					}
+					socketClient.Ack(*event.Request)
 				default:
 					log.Println("****** Received Event: ", event)
 				}

@@ -68,14 +68,60 @@ func handleHelloCommand(command slack.SlashCommand, client *slack.Client) error 
 	return nil
 }
 
-// HandleSlashCommand handles slash commands by routing them to the appropriate function
-func HandleSlashCommand(command slack.SlashCommand, client *slack.Client) error {
-	log.Println("Received slash command", command)
-	switch command.Command {
-	case "/hello":
-		return handleHelloCommand(command, client)
+func handleIsArticleGood() (interface{}, error) {
+
+	attachment := slack.Attachment{}
+
+	checkbox := slack.NewCheckboxGroupsBlockElement("answer",
+		slack.NewOptionBlockObject("yes", &slack.TextBlockObject{Text: "Yes", Type: slack.MarkdownType}, &slack.TextBlockObject{Text: "Did you Enjoy it?", Type: slack.MarkdownType}),
+		slack.NewOptionBlockObject("no", &slack.TextBlockObject{Text: "No", Type: slack.MarkdownType}, &slack.TextBlockObject{Text: "Did you Enjoy it?", Type: slack.MarkdownType}),
+	)
+	accessory := slack.NewAccessory(checkbox)
+
+	attachment.Blocks = slack.Blocks{
+		BlockSet: []slack.Block{
+			slack.NewSectionBlock(
+				&slack.TextBlockObject{
+					Type: slack.MarkdownType,
+					Text: "Did you think this article was helpful?",
+				},
+				nil,
+				accessory,
+			),
+		},
+	}
+	attachment.Text = "Rate the tutorial"
+	attachment.Color = "#4af030"
+	return attachment, nil
+
+}
+
+// HandleInteractionEvent determines actions for interactive event types
+func HandleInteractionEvent(interaction slack.InteractionCallback, client *slack.Client) error {
+	log.Printf("The action called is %s\n", interaction.ActionID)
+	log.Printf("The response was of type: %s\n", interaction.Type)
+	switch interaction.Type {
+	case slack.InteractionTypeBlockActions:
+		for _, action := range interaction.ActionCallback.BlockActions {
+			log.Printf("%+v", action)
+			log.Println("Selected option: ", action.SelectedOptions)
+		}
+	default:
+
 	}
 	return nil
+}
+
+// HandleSlashCommand handles slash commands by routing them to the appropriate function
+func HandleSlashCommand(command slack.SlashCommand, client *slack.Client) (interface{}, error) {
+
+	switch command.Command {
+	case "/hello":
+		return nil, handleHelloCommand(command, client)
+	case "/was-this-article-useful":
+		return handleIsArticleGood()
+	}
+	return nil, nil
 }
 
 // HandleEventMessage will take an event and handle itproperly based on the event type
